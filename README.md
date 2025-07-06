@@ -67,7 +67,3 @@ The calculator provides clear error messages when:
 - SymPy (Symbolic mathematics library)
 - Bootstrap (UI framework)
 - JavaScript (Frontend functionality)
-
-## License
-
-This project is open source and available under the MIT License.
