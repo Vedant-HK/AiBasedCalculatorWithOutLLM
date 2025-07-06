@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Calculator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="background-animation"></div>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="calculator-card">
+                    <div class="calculator-header">
+                        <div class="header-content">
+                            <h2 class="text-center mb-0">AI Calculator</h2>
+                            <p class="text-center mb-0">Advanced Mathematical Operations</p>
+                        </div>
+                        <div class="header-icons">
+                            <i class="fas fa-square-root-alt"></i>
+                            <i class="fas fa-infinity"></i>
+                            <i class="fas fa-pi"></i>
+                        </div>
+                    </div>
+                    <div class="calculator-body">
+                        <div class="input-section">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-calculator"></i></span>
+                                <input type="text" id="expression" class="form-control" placeholder="Enter expression (e.g., x**2 for integral, 2*x + 5 = 10 for equation)">
+                                <button class="btn btn-primary" onclick="calculate()">
+                                    <i class="fas fa-equals"></i> Calculate
+                                </button>
+                            </div>
+                        </div>
+                        <div class="operation-buttons">
+                            <button class="btn btn-operation" onclick="setOperation('calculate')">
+                                <i class="fas fa-calculator"></i> Basic Calc
+                            </button>
+                            <button class="btn btn-operation" onclick="setOperation('solve')">
+                                <i class="fas fa-equals"></i> Solve Equation
+                            </button>
+                            <button class="btn btn-operation" onclick="setOperation('derivative')">
+                                <i class="fas fa-superscript"></i> Derivative
+                            </button>
+                            <button class="btn btn-operation" onclick="setOperation('integral')">
+                                <i class="fas fa-integral"></i> Integral
+                            </button>
+                        </div>
+                        <div class="result-section">
+                            <div id="result" class="alert alert-info d-none">
+                                <i class="fas fa-check-circle"></i> Result will appear here
+                            </div>
+                            <div id="error" class="alert alert-danger d-none">
+                                <i class="fas fa-exclamation-circle"></i> Error message will appear here
+                            </div>
+                        </div>
+                        <div class="quick-examples">
+                            <h5>Quick Examples:</h5>
+                            <div class="examples-grid">
+                                <button class="btn btn-example" onclick="setExample('2 + 3 * 4')">Basic: 2 + 3 * 4</button>
+                                <button class="btn btn-example" onclick="setExample('2*x + 5 = 10')">Equation: 2*x + 5 = 10</button>
+                                <button class="btn btn-example" onclick="setExample('x**2 + 2*x')">Derivative: x**2 + 2*x</button>
+                                <button class="btn btn-example" onclick="setExample('x**2')">Integral: x**2</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentOperation = 'calculate';
+
+        function setOperation(operation) {
+            currentOperation = operation;
+            document.querySelectorAll('.btn-operation').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update placeholder text based on operation
+            const input = document.getElementById('expression');
+            switch(operation) {
+                case 'integral':
+                    input.placeholder = 'Enter function to integrate (e.g., x**2, sin(x))';
+                    break;
+                case 'solve':
+                    input.placeholder = 'Enter equation (e.g., 2*x + 5 = 10)';
+                    break;
+                case 'derivative':
+                    input.placeholder = 'Enter function to differentiate (e.g., x**2 + 2*x)';
+                    break;
+                default:
+                    input.placeholder = 'Enter mathematical expression (e.g., 2 * 3 + 5)';
+            }
+        }
+
+        function setExample(expression) {
+            document.getElementById('expression').value = expression;
+        }
+
+        async function calculate() {
+            const expression = document.getElementById('expression').value;
+            const resultDiv = document.getElementById('result');
+            const errorDiv = document.getElementById('error');
+
+            if (!expression) {
+                errorDiv.classList.remove('d-none');
+                resultDiv.classList.add('d-none');
+                errorDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Please enter a mathematical expression';
+                return;
+            }
+
+            try {
+                const response = await fetch('/calculate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        expression: expression,
+                        operation: currentOperation
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    errorDiv.classList.add('d-none');
+                    resultDiv.classList.remove('d-none');
+                    
+                    let resultContent = '';
+                    switch(currentOperation) {
+                        case 'calculate':
+                            resultContent = `<i class="fas fa-check-circle"></i> Result: ${data.result}`;
+                            break;
+                        case 'solve':
+                            const solutions = Array.isArray(data.result) ? data.result : [data.result];
+                            resultContent = `<i class="fas fa-check-circle"></i> Solutions: ${solutions.join(', ')}`;
+                            break;
+                        case 'derivative':
+                            resultContent = `<i class="fas fa-check-circle"></i> Derivative: ${data.result}`;
+                            break;
+                        case 'integral':
+                            resultContent = `<i class="fas fa-check-circle"></i> Integral: ${data.result} + C`;
+                            break;
+                        default:
+                            resultContent = `<i class="fas fa-check-circle"></i> Result: ${data.result}`;
+                    }
+                    resultDiv.innerHTML = resultContent;
+                } else {
+                    resultDiv.classList.add('d-none');
+                    errorDiv.classList.remove('d-none');
+                    errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${data.error}`;
+                }
+            } catch (error) {
+                resultDiv.classList.add('d-none');
+                errorDiv.classList.remove('d-none');
+                errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${error.message}`;
+            }
+        }
+
+        // Set initial active button
+        document.addEventListener('DOMContentLoaded', function() {
+            const initialButton = document.querySelector('.btn-operation');
+            if (initialButton) {
+                initialButton.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html> 

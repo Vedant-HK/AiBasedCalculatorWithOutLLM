@@ -1,0 +1,4 @@
+flask==3.0.2
+sympy==1.12
+numpy==1.26.4
+python-dotenv==1.0.1
